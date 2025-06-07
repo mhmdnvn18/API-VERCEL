@@ -12,11 +12,12 @@ export default async function handler(req, res) {
     // Pastikan input berbentuk [jumlah_sample, 11]
     const inputTensor = tf.tensor(input).reshape([-1, 11]);
     const prediction = model.predict(inputTensor);
+    const predictionData = await prediction.data(); // ambil data sebelum dispose
     
     // Bersihkan tensor setelah digunakan
     inputTensor.dispose();
     prediction.dispose();
-    res.status(200).json({ prediction: Array.from(prediction.dataSync()) });
+    res.status(200).json({ prediction: Array.from(predictionData) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
