@@ -32,6 +32,41 @@ Panduan ini menjelaskan cara menghosting model Machine Learning (ML) TensorFlow.
 
 ---
 
+## Setelah Deploy: Akses UI
+
+Setelah proses deploy selesai, **akses root URL** aplikasi Vercel kamu, misal:
+
+```
+https://api-vercel-silk.vercel.app/
+```
+
+Jika konfigurasi sudah benar dan file `public/index.html` ada, maka halaman UI akan tampil.
+
+---
+
+## Troubleshooting (Jika Masih 404)
+
+- Pastikan file `public/index.html` sudah ada dan ter-push ke repo.
+- Pastikan struktur folder sesuai contoh di README.
+- Pastikan `vercel.json` sudah seperti berikut:
+  ```json
+  {
+    "version": 2,
+    "builds": [
+      { "src": "api/**/*.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/api/(.*)", "dest": "/api/$1.js" },
+      { "handle": "filesystem" },
+      { "src": "/(.*)", "dest": "/public/index.html" }
+    ]
+  }
+  ```
+- Cek di dashboard Vercel pada tab "Files", pastikan file `public/index.html` muncul.
+- Jika `/index.html` bisa diakses tapi `/` tidak, kemungkinan ada masalah pada routing.
+
+---
+
 ## Cara Mengetes API
 
 ### 1. Menggunakan `curl` (Terminal/Command Prompt)

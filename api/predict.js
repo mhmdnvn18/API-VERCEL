@@ -1,4 +1,4 @@
-const tf = require('@tensorflow/tfjs-node');
+const tf = require('@tensorflow/tfjs');
 let model;
 
 module.exports = async (req, res) => {
@@ -28,7 +28,8 @@ module.exports = async (req, res) => {
     }
 
     if (!model) {
-      model = await tf.loadLayersModel('file://tfjs_model/model.json');
+      // Ganti path model ke URL absolut agar bisa diakses di serverless
+      model = await tf.loadLayersModel('https://api-vercel-silk.vercel.app/tfjs_model/model.json');
     }
     const inputTensor = tf.tensor([input]);
     const prediction = model.predict(inputTensor);
