@@ -1,45 +1,39 @@
-const tf = require('@tensorflow/tfjs'); // pakai versi non-node agar kompatibel dengan Vercel
+import * as tf from '@tensorflow/tfjs-node';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 let model;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method Not Allowed' });
-    return;
+async function loadModel() {
+  if (!model) {
+    const modelPath = 'file://' + path.join(__dirname, '..', 'model', 'model.json');
+    model = await tf.loadLayersModel(modelPath);
+    console.log("✅ Model loaded!");
   }
+  return model;
+}
 
-  let body = req.body;
-  if (!body) {
-    try {
-      body = JSON.parse(req.rawBody || '{}');
-    } catch {
-      res.status(400).json({ error: 'Invalid JSON' });
-      return;
-    }
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const input = body.input;
+    const input = req.body.data;
 
-    if (!Array.isArray(input) || input.length !== 11 || input.some(x => typeof x !== 'number' || isNaN(x))) {
-      res.status(400).json({ error: 'Input harus array dengan 11 angka.' });
-      return;
+    if (!Array.isArray(input) || input.length !== 11) {
+      return res.status(400).json({ error: 'Input must be an array of 11 numbers.' });
     }
 
-    if (!model) {
-      model = await tf.loadLayersModel('https://api-vercel-silk.vercel.app/tfjs_model/model.json');
-    }
+    const model = await loadModel();
+    const inputTensor = tf.tensor2d([input], [1, 11]);
+    const outputTensor = model.predict(inputTensor);
+    const prediction = await outputTensor.data();
 
-    const inputTensor = tf.tensor([input]);
-    const prediction = model.predict(inputTensor);
-    const result = await prediction.data();
-
-    inputTensor.dispose();
-    if (typeof prediction.dispose === 'function') prediction.dispose();
-
-    res.setHeader('Cache-Control', 'no-store');
-    res.status(200).json({ prediction: result[0] });
+    res.status(200).json({ prediction: prediction[0] });
   } catch (err) {
-    console.error('Prediction error:', err);
-    res.status(500).json({ error: 'Internal server error', detail: err.message });
+    res.status(500).json({ error: err.toString() });
   }
-};
+}

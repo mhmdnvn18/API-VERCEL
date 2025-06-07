@@ -2,45 +2,71 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Cek Fungsi Model ML</title>
+  <title>Model Predict UI</title>
   <style>
-    body { max-width: 400px; margin: 40px auto; font-family: sans-serif; }
-    input { width: 100%; padding: 8px; margin-bottom: 8px; }
-    button { padding: 8px 16px; }
-    .error { color: red; margin-top: 8px; }
-    .result { margin-top: 16px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    input {
+      width: 60px;
+      margin: 4px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h2>Cek Fungsi Model ML</h2>
-  <p>Masukkan input (pisahkan dengan koma, contoh: 1,2,3,4,5,6,7,8,9,10,11):</p>
-  <input id="input" placeholder="1,2,3,4,5,6,7,8,9,10,11" />
-  <button id="cek">Cek Model</button>
-  <div id="error" class="error"></div>
-  <div id="result" class="result"></div>
+  <h2>🚀 Prediksi Model TF.js</h2>
+  <p>Masukkan 11 nilai input:</p>
+  <div id="inputs"></div>
+  <button onclick="predict()">Kirim ke API</button>
+  <div id="result">Hasil akan muncul di sini...</div>
+
   <script>
-    document.getElementById('cek').onclick = async function() {
-      const input = document.getElementById('input').value;
-      document.getElementById('error').textContent = '';
-      document.getElementById('result').textContent = '';
-      const arr = input.split(',').map(s => Number(s.trim()));
-      if (arr.length !== 11 || arr.some(isNaN)) {
-        document.getElementById('error').textContent = 'Input harus 11 angka, pisahkan dengan koma.';
-        return;
+    const inputsDiv = document.getElementById('inputs');
+    for (let i = 0; i < 11; i++) {
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.step = 'any';
+      input.placeholder = `x${i + 1}`;
+      input.id = `input${i}`;
+      inputsDiv.appendChild(input);
+    }
+
+    async function predict() {
+      const data = [];
+      for (let i = 0; i < 11; i++) {
+        const val = parseFloat(document.getElementById(`input${i}`).value);
+        if (isNaN(val)) {
+          alert(`Input ke-${i + 1} tidak valid.`);
+          return;
+        }
+        data.push(val);
       }
-      try {
-        const res = await fetch('/api/predict', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: arr })
-        });
-        const data = await res.json();
-        if (data.error) document.getElementById('error').textContent = data.error;
-        else document.getElementById('result').textContent = 'Hasil Prediksi: ' + data.prediction;
-      } catch {
-        document.getElementById('error').textContent = 'Terjadi error';
+
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data })
+      });
+
+      const json = await res.json();
+      if (json.prediction !== undefined) {
+        document.getElementById('result').textContent = `✅ Prediksi: ${json.prediction.toFixed(4)}`;
+      } else {
+        document.getElementById('result').textContent = `❌ Error: ${json.error}`;
       }
-    };
+    }
   </script>
 </body>
 </html>
