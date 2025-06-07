@@ -286,8 +286,12 @@
         const data = await response.json();
         const duration = (performance.now() - startTime).toFixed(2);
         
-        showResult(data.prediction);
-        showStatus(`✅ Sukses! Waktu proses: ${duration}ms`, 'success');
+        if (typeof data.prediction === 'number') {
+          showResult(data.prediction);
+          showStatus(`✅ Sukses! Waktu proses: ${duration}ms`, 'success');
+        } else {
+          showStatus('❌ Error: Response tidak valid dari server', 'error');
+        }
       } catch (error) {
         console.error('Prediction error:', error);
         showStatus(`❌ Error: ${error.message}`, 'error');

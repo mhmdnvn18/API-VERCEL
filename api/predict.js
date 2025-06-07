@@ -51,10 +51,18 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { data } = req.body;
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({ error: 'Invalid JSON' });
+      }
+    }
+    const { data } = body;
 
-    if (!Array.isArray(data) || data.length !== 11) {
-      return res.status(400).json({ error: 'Input must be an array of 11 numbers' });
+    if (!Array.isArray(data) || data.length !== 11 || !data.every(x => typeof x === 'number' && !isNaN(x))) {
+      return res.status(400).json({ error: 'Input must be an array of 11 valid numbers' });
     }
 
     const model = await loadModel();
