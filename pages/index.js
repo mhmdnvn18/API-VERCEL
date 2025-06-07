@@ -26,7 +26,11 @@ export default function Home() {
       });
       const data = await res.json();
       if (data.error) setError(data.error);
-      else setResult(data.prediction);
+      else {
+        setResult(data.prediction);
+        // Bersihkan input jika ingin UX lebih baik
+        // setInput('');
+      }
     } catch (e) {
       setError('Terjadi error');
     }
@@ -42,7 +46,9 @@ export default function Home() {
         style={{ width: '100%', padding: 8, marginBottom: 8 }}
         value={input}
         onChange={e => {
-          setInput(e.target.value);
+          // Validasi hanya angka, koma, dan spasi
+          const val = e.target.value.replace(/[^0-9,\s]/g, '');
+          setInput(val);
           setResult(null);
           setError('');
         }}
@@ -51,6 +57,9 @@ export default function Home() {
       <button onClick={handlePredict} disabled={loading || !input}>
         {loading ? 'Memproses...' : 'Cek Model'}
       </button>
+      {loading && (
+        <div style={{ marginTop: 8 }}>Loading...</div>
+      )}
       {error && (
         <div style={{ color: 'red', marginTop: 8 }}>{error}</div>
       )}
