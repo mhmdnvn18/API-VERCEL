@@ -5,8 +5,5 @@
       "src": "api/**/*.js",
       "use": "@vercel/node"
     }
-  ],
-  "includeFiles": [
-    "tfjs_model/**"
   ]
 }
