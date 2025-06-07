@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
 
   try {
     const input = body.input;
-    // Batasi input agar tidak lebih dari 11 angka
+    // Validasi: input harus array dengan 11 angka
     if (!Array.isArray(input) || input.length !== 11 || input.some(x => typeof x !== 'number' || isNaN(x))) {
       res.status(400).json({ error: 'Input harus array dengan 11 angka.' });
       return;
@@ -34,12 +34,12 @@ module.exports = async (req, res) => {
     const prediction = model.predict(inputTensor);
     const result = await prediction.data();
     inputTensor.dispose();
-    prediction.dispose && prediction.dispose();
+    if (typeof prediction.dispose === 'function') prediction.dispose();
 
     res.setHeader('Cache-Control', 'no-store');
     res.status(200).json({ prediction: result[0] });
   } catch (err) {
-    // Logging error (opsional, hapus jika tidak ingin log)
+    // Logging error (opsional)
     console.error('Prediction error:', err);
     res.status(500).json({ error: 'Internal server error', detail: err.message });
   }
