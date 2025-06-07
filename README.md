@@ -1,6 +1,6 @@
-# Hosting Model ML di Vercel & Konsumsi API dari Website Lain
+# Hosting Model ML di Vercel & Konsumsi API
 
-Panduan ini menjelaskan cara menghosting model Machine Learning (ML) berbasis TensorFlow.js di Vercel, membuat endpoint API, serta menambahkan frontend sederhana untuk pengecekan model.
+Panduan ini menjelaskan cara menghosting model Machine Learning (ML) TensorFlow.js di Vercel, membuat endpoint API, dan menambahkan frontend sederhana untuk pengecekan model.
 
 ---
 
@@ -9,9 +9,9 @@ Panduan ini menjelaskan cara menghosting model Machine Learning (ML) berbasis Te
 ```
 .
 ├── api/
-│   └── predict.js   # <--- WAJIB ADA untuk endpoint API ML di Vercel
-├── pages/
-│   └── index.js         # (opsional, untuk frontend Next.js)
+│   └── predict.js       # Endpoint API ML (WAJIB)
+├── public/
+│   └── index.html       # (opsional, frontend statis)
 ├── tfjs_model/
 │   ├── model.json
 │   └── group1-shard1of1.bin
@@ -21,39 +21,60 @@ Panduan ini menjelaskan cara menghosting model Machine Learning (ML) berbasis Te
 
 ---
 
-## 2. Langkah-langkah
+## 2. Deploy Model ML sebagai API di Vercel
 
-### Langkah 1: Siapkan Model ML sebagai API
-- Buat file API (misal: `api/predict.js`) di folder proyek Vercel Anda.
-- Pastikan model ML dapat di-load dan menerima input melalui HTTP request (POST/GET).
-- **Pastikan folder `tfjs_model` (berisi `model.json` dan `.bin`) sudah di-push ke GitHub.**
+1. **Siapkan file API**  
+   Buat `api/predict.js` yang memuat dan menjalankan model ML (lihat contoh di bawah).
+2. **Pastikan folder `tfjs_model`** (berisi `model.json` dan `.bin`) sudah ada di repo.
+3. **Push ke GitHub** lalu import ke Vercel ([https://vercel.com/import](https://vercel.com/import)).
+4. **Setelah deploy**, endpoint API bisa diakses di:  
+   `https://your-vercel-app.vercel.app/api/predict`
 
-### Langkah 2: Deploy ke Vercel via GitHub
-- Push seluruh kode (termasuk folder `tfjs_model`) ke repository GitHub Anda.
-- Hubungkan repo ke Vercel melalui dashboard Vercel ([https://vercel.com/import](https://vercel.com/import)).
-- Deploy dan dapatkan URL endpoint API, misal: `https://your-vercel-app.vercel.app/api/predict`.
+---
 
-### Langkah 3: Contoh API Handler di Vercel (`api/predict.js`)
+## Cara Mengetes API
+
+### 1. Menggunakan `curl` (Terminal/Command Prompt)
+
+```sh
+curl -X POST https://your-vercel-app.vercel.app/api/predict \
+  -H "Content-Type: application/json" \
+  -d "{\"input\": [1,2,3,4,5,6,7,8,9,10,11]}"
+```
+
+### 2. Menggunakan Postman
+
+- Pilih metode **POST**
+- URL: `https://your-vercel-app.vercel.app/api/predict`
+- Body: pilih **raw** dan **JSON**, lalu isi:
+  ```json
+  {
+    "input": [1,2,3,4,5,6,7,8,9,10,11]
+  }
+  ```
+- Klik **Send**.
+
+### 3. Dari Frontend HTML
+
+Buka file `public/index.html` di browser setelah deploy, masukkan 11 angka, klik **Cek Model**.
+
+---
+
+## 3. Contoh API Handler (`api/predict.js`)
+
 ```js
-// ...c:\.Github_mhmdnvn18@gmail.com\API-VERCEL\api\predict.js...
 const tf = require('@tensorflow/tfjs-node');
 let model;
 
 module.exports = async (req, res) => {
-  // Hanya izinkan POST
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
   }
-  // Parsing body & validasi input
   let body = req.body;
   if (!body) {
-    try {
-      body = JSON.parse(req.rawBody || '{}');
-    } catch {
-      res.status(400).json({ error: 'Invalid JSON' });
-      return;
-    }
+    try { body = JSON.parse(req.rawBody || '{}'); }
+    catch { res.status(400).json({ error: 'Invalid JSON' }); return; }
   }
   const input = body.input;
   if (!Array.isArray(input) || input.length !== 11) {
@@ -70,111 +91,95 @@ module.exports = async (req, res) => {
 };
 ```
 
-### Langkah 4: Konsumsi API dari Website Lain
-Contoh menggunakan fetch di JavaScript:
+---
+
+## 4. Konsumsi API dari Website Lain
+
+Contoh menggunakan `fetch` di JavaScript:
+
 ```js
 fetch('https://your-vercel-app.vercel.app/api/predict', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ input: [/* data_input */] })
+  body: JSON.stringify({ input: [/* 11 angka */] })
 })
   .then(res => res.json())
-  .then(data => {
-    console.log('Prediction:', data);
-  });
+  .then(data => console.log('Prediction:', data));
 ```
 
 ---
 
-## 3. Menambahkan Frontend untuk Cek Fungsi Model
+## 5. Frontend Sederhana untuk Cek Model
 
-- **Bisa!** Anda dapat menambahkan frontend (misal: folder `pages` untuk Next.js atau folder `public` untuk static HTML) di dalam project yang sama.
-- Frontend ini bisa memanggil endpoint API (`/api/predict`) secara langsung tanpa CORS.
+Bisa menggunakan Next.js (`pages/index.js`) atau HTML statis (`public/index.html`).  
+Contoh HTML (`public/index.html`):
 
-Contoh sederhana (Next.js, `pages/index.js`):
-```js
-import { useState } from 'react';
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cek Model ML</title>
+</head>
+<body>
+  <h1>Cek Model ML di Vercel</h1>
+  <input id="input" placeholder="1,2,3,4,5,6,7,8,9,10,11" />
+  <button id="cek">Cek Model</button>
+  <div id="result"></div>
+  <script>
+    document.getElementById('cek').onclick = async function() {
+      const arr = document.getElementById('input').value.split(',').map(s => Number(s.trim()));
+      if (arr.length !== 11 || arr.some(isNaN)) {
+        alert('Input harus 11 angka, pisahkan dengan koma.');
+        return;
+      }
+      const res = await fetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: arr })
+      });
+      const data = await res.json();
+      document.getElementById('result').innerText = 'Hasil Prediksi: ' + data.prediction;
+    };
+  </script>
+</body>
+</html>
+```
 
-export default function Home() {
-  const [input, setInput] = useState('');
-  const [result, setResult] = useState(null);
+---
 
-  const handlePredict = async () => {
-    const res = await fetch('/api/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: input.split(',').map(Number) })
-    });
-    const data = await res.json();
-    setResult(data.prediction);
-  };
+## 6. Konfigurasi Vercel (`vercel.json`)
 
-  return (
-    <div>
-      <input value={input} onChange={e => setInput(e.target.value)} />
-      <button onClick={handlePredict}>Cek Model</button>
-      {result !== null && <div>Hasil Prediksi: {result}</div>}
-    </div>
-  );
+```json
+{
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/.*", "dest": "/api/predict.js" },
+    { "src": "/(.*)", "dest": "/public/$1" },
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/public/index.html" }
+  ]
 }
 ```
-- Anda juga bisa menggunakan HTML/JS biasa di folder `public` dan memanggil API dengan `fetch` seperti contoh sebelumnya.
 
 ---
 
-## 4. Konfigurasi Vercel
+## 7. FAQ & Tips
 
-- Untuk project API Node.js (tanpa frontend), **tidak perlu mengatur Framework Preset, Build Command, atau Output Directory**.
-- Root Directory cukup diisi `./` (default).
-- Install Command otomatis (`npm install`), kecuali Anda ingin custom.
-- Build Command **tidak perlu diisi** jika hanya menggunakan API (tidak ada proses build).
-- Output Directory **tidak perlu diisi**.
-- Variabel environment (`.env`) bisa diatur jika diperlukan.
-- Pastikan file API (`api/predict.js`), folder `tfjs_model`, dan file `vercel.json` sudah ada di repo.
+- **Model harus format TensorFlow.js** (`model.json` + `.bin`), bukan `.h5`.
+- **Tidak perlu build command/output directory** jika hanya API.
+- **FastAPI (Python) tidak didukung** di Vercel.
+- Untuk model besar, pertimbangkan platform lain (Railway, Render, dsb).
+- **Cek log error** di dashboard Vercel jika API gagal.
 
 ---
 
-## 5. Catatan
+## 8. Referensi
 
-- Pastikan model ML Anda ringan agar sesuai dengan batasan serverless Vercel.
-- Untuk model besar, pertimbangkan menggunakan cloud function atau layanan lain.
-- **File model yang digunakan tergantung framework:**
-  - `.h5` biasanya untuk Keras/TensorFlow (Python).
-  - `.json` dan `.bin` biasanya untuk model TensorFlow.js (JavaScript, di browser/server).
-- Jika ingin menjalankan model di server (Node.js di Vercel), gunakan format yang didukung oleh library yang Anda pakai (misal: TensorFlow.js untuk `.json`+`.bin`, atau ONNX untuk model ONNX).
-
----
-
-## 6. Saran Penggunaan File Model
-
-- Jika ingin menjalankan model di Vercel menggunakan Node.js (JavaScript), **gunakan file `model.json` dan `group1-shard1of1.bin`** (format TensorFlow.js).
-- **Letakkan file model di folder `tfjs_model`** di dalam proyek Anda.
-- File `.h5` hanya bisa digunakan di lingkungan Python, bukan di Vercel serverless function berbasis Node.js.
-- Jadi, untuk API di Vercel: **pakai `model.json` dan `.bin`** dengan library [@tensorflow/tfjs-node](https://www.npmjs.com/package/@tensorflow/tfjs-node) atau [@tensorflow/tfjs](https://www.npmjs.com/package/@tensorflow/tfjs).
-- Saat load model di API, gunakan path relatif:  
-  ```js
-  const tf = require('@tensorflow/tfjs-node');
-  const model = await tf.loadLayersModel('file://tfjs_model/model.json');
-  ```
-
----
-
-## 7. Framework yang Digunakan
-
-- Model dengan file `model.json` dan `.bin` adalah hasil konversi dari Keras/TensorFlow ke **TensorFlow.js**.
-- Untuk menjalankan di Vercel (Node.js), gunakan framework **TensorFlow.js** (bukan Keras/TensorFlow Python).
-- **Bukan Hapi**: Anda tidak perlu menggunakan framework Hapi. Cukup gunakan handler API standar (misal: `export default function handler(req, res) { ... }`) di Vercel, lalu load model dengan TensorFlow.js.
-
----
-
-## 8. FAQ
-
-### Apakah setelah deploy di Vercel, API bisa langsung digunakan?
-**Ya,** jika semua file sudah di-push ke GitHub (termasuk folder `tfjs_model` dan file konfigurasi seperti `vercel.json`), serta kode API handler sudah benar, maka setelah deploy di Vercel, endpoint API (misal: `https://your-vercel-app.vercel.app/api/predict`) bisa langsung diakses/digunakan dari website lain.
-
-### Apakah Bisa Menggunakan FastAPI?
-- **Tidak bisa di Vercel:** Vercel hanya mendukung serverless API berbasis Node.js (JavaScript/TypeScript), bukan Python.
-- Jika ingin menggunakan **FastAPI (Python)**, Anda harus deploy di platform lain seperti [Railway](https://railway.app/), [Render](https://render.com/), [Heroku](https://heroku.com/), atau VPS yang mendukung Python.
-- Untuk Vercel, gunakan handler API Node.js dan TensorFlow.js seperti contoh di atas.
+- [@tensorflow/tfjs-node](https://www.npmjs.com/package/@tensorflow/tfjs-node)
+- [Vercel Serverless Functions](https://vercel.com/docs/functions/serverless-functions)
+- [TensorFlow.js Converter](https://www.tensorflow.org/js/tutorials/conversion/import_keras)
 
 ---
