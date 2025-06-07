@@ -5,7 +5,7 @@ import * as tf from '@tensorflow/tfjs';
 export default async function handler(req, res) {
   try {
     // Gunakan path relatif tanpa 'file://' agar bisa diakses di Vercel
-    const model = await tf.loadLayersModel('model/model.json');
+    const model = await tf.loadLayersModel('https://'+req.headers.host+'/model/model.json');
     // Proses input dan prediksi
     const input = req.body.input;
     const prediction = model.predict(tf.tensor(input));
